@@ -5,14 +5,14 @@
 }
 
 :root {
-  --bg: #0c0c0f;
-  --bg-elevated: #141419;
-  --text: #f0f0f2;
-  --text-muted: #8a8a94;
-  --accent: #7c5cff;
-  --accent-hover: #9378ff;
-  --border: #2a2a32;
-  --radius: 12px;
+  --bg: #FAF7EF;
+  --bg-elevated: #F5F2E8;
+  --text: #1a1a1a;
+  --text-muted: #737373;
+  --accent: #1a1a1a;
+  --accent-hover: #333333;
+  --border: #e5e5e5;
+  --radius: 8px;
   --font: 'Outfit', system-ui, sans-serif;
 }
 
