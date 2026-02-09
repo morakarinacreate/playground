@@ -1,54 +1,46 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
-
-const HEADLINE_PHRASES = ['Designed for', 'Built around', 'Done by']
-const DISPLAY_DURATION_MS = 2500
-const TYPE_SPEED_MS = 70
+import OrbitPlannerAnimation from './components/OrbitPlannerAnimation'
 
 function App() {
-  const [displayText, setDisplayText] = useState(HEADLINE_PHRASES[0])
-  const [phraseIndex, setPhraseIndex] = useState(0)
-  const [heroSubmitted, setHeroSubmitted] = useState(false)
-  const phaseRef = useRef('idle')
-  const displayEndRef = useRef(Date.now() + DISPLAY_DURATION_MS)
-  const nextPhraseRef = useRef(0)
+  const [activeStep, setActiveStep] = useState(0)
+  const stepsContainerRef = useRef(null)
+  const stepRefs = useRef([])
 
   useEffect(() => {
-    const tick = () => {
-      const now = Date.now()
-      if (phaseRef.current === 'idle') {
-        if (now >= displayEndRef.current) {
-          phaseRef.current = 'typingOut'
+    const handleScroll = () => {
+      if (!stepsContainerRef.current || stepRefs.current.length === 0) return
+      
+      const steps = stepRefs.current.filter(Boolean)
+      if (steps.length === 0) return
+      
+      const viewportCenter = window.innerHeight / 2
+      
+      // Find which step is closest to viewport center
+      let closestStep = 0
+      let closestDistance = Infinity
+      
+      for (let i = 0; i < steps.length; i++) {
+        const stepRect = steps[i].getBoundingClientRect()
+        const stepCenter = stepRect.top + stepRect.height / 2
+        const distance = Math.abs(stepCenter - viewportCenter)
+        
+        if (distance < closestDistance) {
+          closestDistance = distance
+          closestStep = i
         }
-        return
       }
-      if (phaseRef.current === 'typingOut') {
-        setDisplayText((prev) => {
-          if (prev.length <= 1) {
-            nextPhraseRef.current = (phraseIndex + 1) % HEADLINE_PHRASES.length
-            setPhraseIndex(nextPhraseRef.current)
-            phaseRef.current = 'typingIn'
-            return ''
-          }
-          return prev.slice(0, -1)
-        })
-        return
-      }
-      if (phaseRef.current === 'typingIn') {
-        const target = HEADLINE_PHRASES[nextPhraseRef.current]
-        setDisplayText((prev) => {
-          if (prev.length >= target.length) {
-            phaseRef.current = 'idle'
-            displayEndRef.current = Date.now() + DISPLAY_DURATION_MS
-            return target
-          }
-          return target.slice(0, prev.length + 1)
-        })
-      }
+      
+      setActiveStep(closestStep)
     }
-    const id = setInterval(tick, TYPE_SPEED_MS)
-    return () => clearInterval(id)
-  }, [phraseIndex])
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // Initial call
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [])
 
   return (
     <div className="landing">
@@ -58,126 +50,137 @@ function App() {
           <nav className="nav">
             <a href="#how-it-works">How it works</a>
             <a href="#why-luna">Why Luna</a>
-            <a href="#cta" className="btn btn-primary">Join the waitlist</a>
           </nav>
         </div>
       </header>
 
       <section className="hero">
-        <div className="hero-content">
-          <h1 className="hero-headline">
-            <span className="hero-headline-rotating">
-              {displayText}
-              <span className="hero-headline-cursor" aria-hidden="true" />
-            </span>
-            <span className="hero-headline-static"> <span className="hero-headline-you">you</span>.</span>
-          </h1>
-          <p className="hero-tagline">An AI-powered to-do and goal app built around you.</p>
-          <p className="hero-subtitle">
-            Luna works in your orbit as a planning partner.
-            Share your thoughts and goals. Luna turns them into a focused plan built around your day.
-          </p>
-          <div className="hero-waitlist-wrap">
-            <form
-              className="hero-waitlist-form"
-              onSubmit={(e) => {
-                e.preventDefault()
-                const email = e.currentTarget.querySelector('input[type="email"]').value
-                if (email?.trim()) setHeroSubmitted(true)
-              }}
-            >
-              <input type="email" placeholder="Email address" aria-label="Email" disabled={heroSubmitted} />
-              <button
-                type="submit"
-                className={`btn btn-primary btn-lg ${heroSubmitted ? 'btn-submitted' : ''}`}
-                disabled={heroSubmitted}
-              >
-                {heroSubmitted ? (
-                  <>
-                    <span className="btn-check" aria-hidden="true">✓</span>
-                    <span className="btn-text-struck">Join the waitlist</span>
-                  </>
-                ) : (
-                  'Join the waitlist'
-                )}
-              </button>
-            </form>
-            {heroSubmitted && (
-              <p className="hero-waitlist-confirm">Your email has been successfully submitted.</p>
-            )}
+        <h1 className="hero-headline">
+          Get luna.ai in your orbit.
+        </h1>
+        <div className="hero-columns">
+          <div className="hero-content">
+            <p className="hero-tagline">An AI-powered to-do and goal app built for you.</p>
+            <p className="hero-subtitle">
+              Share your thoughts and goals. Luna turns them into a focused plan built around your day, your way.
+            </p>
+          </div>
+          <div className="hero-animation-wrapper">
+            <OrbitPlannerAnimation />
           </div>
         </div>
       </section>
 
-      <section id="how-it-works" className="how-it-works">
-        <h2 className="section-title">How Luna Works</h2>
-        <ol className="steps-list">
-          <li className="step-card">
-            <span className="step-num">1</span>
-            <h3>Brain-dump, without pressure</h3>
-            <p>Start your day by dumping everything in your head. No formatting. No organizing. Just thoughts.</p>
-          </li>
-          <li className="step-card">
-            <span className="step-num">2</span>
-            <h3>AI prioritizes for you</h3>
-            <p>Luna turns your brain-dump into a realistic, ordered task list—so you don't have to decide what matters most.</p>
-          </li>
-          <li className="step-card">
-            <span className="step-num">3</span>
-            <h3>Goals → doable steps</h3>
-            <p>Add short- or long-term goals. Luna breaks them into achievable tasks and schedules progress over time.</p>
-          </li>
-          <li className="step-card">
-            <span className="step-num">4</span>
-            <h3>Your day, mapped clearly</h3>
-            <p>See tasks in an agenda view alongside your calendar. Luna plans tasks around meetings—errands during lunch, focus work when you're free.</p>
-          </li>
-        </ol>
-      </section>
-
-      <section id="why-luna" className="designed-for">
-        <h2 className="section-title">Designed for ADHD. Built for everyone.</h2>
-        <p className="designed-for-text">
-          Luna is intentionally minimal.
-          Each interaction is designed to reduce cognitive overhead and decision fatigue. While it's especially effective for people with ADHD, the system benefits anyone who wants clarity without unnecessary complexity.
-        </p>
-      </section>
-
-      <section className="custom-ai">
-        <h2 className="section-title">Custom AI, tuned to you</h2>
-        <p className="custom-ai-lead">Everyone works differently. Luna adapts.</p>
-        <p className="custom-ai-sub">Set your own rules, like:</p>
-        <ul className="custom-ai-rules">
-          <li>"Never show me more than 10 tasks."</li>
-          <li>"Move overflow tasks to tomorrow or my backlog."</li>
-          <li>"Group errands together."</li>
-          <li>"Protect my mornings for deep work."</li>
-        </ul>
-        <p className="custom-ai-close">Your AI follows your logic—not a generic productivity system.</p>
-      </section>
-
-      <section className="why-different">
-        <h2 className="section-title">Why Luna is different</h2>
-        <ul className="why-different-list">
-          <li>No rigid task systems</li>
-          <li>No endless lists</li>
-          <li>No guilt for unfinished tasks</li>
-        </ul>
-        <p className="why-different-close">
-          Just a calm, intelligent system that helps you move forward—one day at a time.
-        </p>
-      </section>
-
       <section id="cta" className="cta">
-        <h2 className="cta-title">Be the first to try Luna AI</h2>
+        <h2 className="cta-title">Become a Beta Tester</h2>
         <p className="cta-subtitle">
-          We're building Luna thoughtfully and releasing it in stages.
-          Join the waitlist to get early access and help shape the product.
+          We're looking for early users to help shape Luna. 
+          Get exclusive access, provide feedback, and be part of building something that actually works for you.
         </p>
         <form className="cta-form" onSubmit={(e) => e.preventDefault()}>
           <input type="email" placeholder="Email address" aria-label="Email" />
-          <button type="submit" className="btn btn-primary btn-lg">Join the waitlist</button>
+          <button type="submit" className="btn btn-primary btn-lg">Request beta access</button>
         </form>
+      </section>
+
+      <section id="how-it-works" className="how-it-works">
+        <h2 className="section-title">How Luna Works</h2>
+        <div className="steps-container" ref={stepsContainerRef}>
+          <div className="steps-timeline-line" />
+          
+          <div className="step-row" ref={el => stepRefs.current[0] = el}>
+            <div className="step-card-content">
+              <h3>Brain-dump, without pressure</h3>
+              <p>Start your day by dumping everything in your head. No formatting. No organizing. Just thoughts.</p>
+            </div>
+            <div className={`steps-timeline-marker ${activeStep === 0 ? 'active' : ''}`}>
+              <span className="step-num">1</span>
+            </div>
+            <div className="step-image-placeholder" aria-hidden="true">
+              <span>Image</span>
+            </div>
+          </div>
+          
+          <div className="step-row" ref={el => stepRefs.current[1] = el}>
+            <div className="step-card-content">
+              <h3>AI prioritizes for you</h3>
+              <p>Luna turns your brain-dump into a realistic, ordered task list—so starting feels simple again.</p>
+            </div>
+            <div className={`steps-timeline-marker ${activeStep === 1 ? 'active' : ''}`}>
+              <span className="step-num">2</span>
+            </div>
+            <div className="step-image-placeholder" aria-hidden="true">
+              <span>Image</span>
+            </div>
+          </div>
+          
+          <div className="step-row" ref={el => stepRefs.current[2] = el}>
+            <div className="step-card-content">
+              <h3>Your day, mapped clearly</h3>
+              <p>Switch between a minimalist task list and agenda view. Luna automatically plans your day around your priorities—according to your rules.</p>
+            </div>
+            <div className={`steps-timeline-marker ${activeStep === 2 ? 'active' : ''}`}>
+              <span className="step-num">3</span>
+            </div>
+            <div className="step-image-placeholder" aria-hidden="true">
+              <span>Image</span>
+            </div>
+          </div>
+          
+          <div className="step-row" ref={el => stepRefs.current[3] = el}>
+            <div className="step-card-content">
+              <h3>Goals → doable steps</h3>
+              <p>Set short- or long-term goals. Luna breaks them into achievable tasks, tracks your progress, and keeps you moving forward.</p>
+            </div>
+            <div className={`steps-timeline-marker ${activeStep === 3 ? 'active' : ''}`}>
+              <span className="step-num">4</span>
+            </div>
+            <div className="step-image-placeholder" aria-hidden="true">
+              <span>Image</span>
+            </div>
+          </div>
+          
+          <div className="step-row" ref={el => stepRefs.current[4] = el}>
+            <div className="step-card-content">
+              <h3>Your orbit, your rules.</h3>
+              <p className="step-lead">Everyone works differently. Luna adapts with custom rules as simple—or as specific—as you want.</p>
+              <ul className="step-rules">
+                <li>"From “Never show me more than 10 tasks"</li>
+                <li>to “Only add chore tasks if it’s a full moon and my last meeting ends before 3pm."</li>
+              </ul>
+              <p className="step-close">Your AI runs on your logic—not templates.</p>
+            </div>
+            <div className={`steps-timeline-marker ${activeStep === 4 ? 'active' : ''}`}>
+              <span className="step-num">5</span>
+            </div>
+            <div className="step-image-placeholder" aria-hidden="true">
+              <span>Image</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="why-luna" className="why-different">
+        <div className="why-different-inner">
+          <h2 className="section-title">Why Luna is different</h2>
+          <div className="why-different-grid">
+            <div className="why-different-card">
+              <h3>No rigid task systems</h3>
+              <p>Flexible workflows that adapt to how you actually work, not the other way around.</p>
+            </div>
+            <div className="why-different-card">
+              <h3>Smart nudges you control</h3>
+              <p>Customize when and how Luna supports you, so reminders fit your rhythm—not disrupt it.</p>
+            </div>
+            <div className="why-different-card">
+              <h3>Designed for ADHD</h3>
+              <p>Luna is intentionally minimal. Each interaction reduces cognitive overhead and decision fatigue—built for everyone who wants clarity without complexity.</p>
+            </div>
+          </div>
+          <p className="why-different-close">
+            Just a calm, intelligent system that helps you move forward—one day at a time.
+          </p>
+        </div>
       </section>
 
       <footer className="footer">
